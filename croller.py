@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from urllib import parse
 import re
+import os
 
 month = 12
 year = 1912
@@ -24,7 +25,6 @@ def CNTS(digital_title, digital_sub_title, digital_date, subtitle):
     total_num = total_num.replace(",", "")
     # print('url : ' + url)
 
-    f.write(data)
     url = f"https://www.nl.go.kr/NL/contents/search.do?resultType=&pageNum=1&pageSize={total_num}&order=&sort=&srchTarget=total&kwd=" + parse.quote(digital_title)+"&systemType=" + parse.quote('온라인자료')+"&lnbTypeName=&category=" + parse.quote(
         '잡지/학술지')+"&hanjaFlag=&reSrchFlag=&licYn=&kdcName1s=&manageName=&langName=&ipubYear="+str(year)+"&pubyearName=&seShelfCode=&detailSearch=&seriesName=&mediaCode=&offerDbcode2s=&f1=&v1=&f2=&v2=&f3=&v3=&f4=&v4=&and1=&and2=&and3=&and4=&and5=&and6=&and7=&and8=&and9=&and10=&and11=&and12=&isbnOp=&isbnCode=&guCode2=&guCode3=&guCode4=&guCode5=&guCode6=&guCode7=&guCode8=&guCode11=&gu2=&gu7=&gu8=&gu9=&gu10=&gu12=&gu13=&gu14=&gu15=&gu16=&subject=&sYear=&eYear=&sRegDate=&eRegDate=&typeCode=&acConNo=&acConNoSubject=&infoTxt="
     req = requests.get(url)
@@ -41,8 +41,12 @@ def CNTS(digital_title, digital_sub_title, digital_date, subtitle):
         html_sub = req_sub.text
         sub = BeautifulSoup(html_sub, 'lxml')
         # print(sub)
-        title = (sub.find('title').get_text(strip=True))
-        date = (sub.find('dateissued')).get_text(strip=True)
+        try :
+            title = (sub.find('title').get_text(strip=True))
+
+            date = (sub.find('dateissued')).get_text(strip=True)
+        except : 
+            continue
         # print(title)
         if subtitle:
             # print("부제 넘어감")
@@ -60,10 +64,12 @@ def CNTS(digital_title, digital_sub_title, digital_date, subtitle):
         # 못찾음
     return 1
 
-
-f = open("result_"+str(year)+"_"+str(month) + ".txt", 'a')
-f_error = open("result_error.txt", 'a')
-f_fail = open("fail", 'a')
+path = "./Result/"+str(year)
+if not os.path.isdir(path):                                                           
+    os.mkdir(path)
+f = open(path+"/result_"+str(year)+"_"+str(month) + ".txt", 'a',-1,'utf-8')
+f_error = open("./Result/result_error.txt", 'a',-1,'utf-8')
+f_fail = open("./Result/fail.txt", 'a',-1,'utf-8')
 # --------------------조선총독뭐시기---------------------
 url = f'https://www.nl.go.kr/NL/contents/N20302010000.do?searchType=month&schM=day_list&page=1&pageSize=10&searchYear={str(year)}&searchMonth='+str(
     month)
@@ -98,13 +104,6 @@ while i < int(total_num):
     except:  # 호외
         digital_writer = '0'
     subtitle = 0
-    # if '작성자 ' in digital_writer:
-    #    digital_writer = digital_writer.replace("작성자 : ", "")  # 작성자
-    #    print("digital_title : " + digital_title + " /digital_writer : " +
-    #          digital_writer + " /digital_date : " + digital_date)
-    #    control_num_ = CNTS(digital_title, ' ',
-    #                       digital_date, subtitle)
-    #   subtitle = 0
     if '부제' in digital_writer:
         digital_writer = digital_writer.replace("부제 : ", "")  # 작성자
         digital_sub_title = digital_writer
@@ -121,7 +120,7 @@ while i < int(total_num):
         control_num_ = CNTS(digital_title, ' ',
                             digital_date, subtitle)
     if control_num_ == 1:
-        print("으악 에러다!")
+        print("검색을 모두 했는데도 나오지 않았어요")
         if subtitle:
             data = digital_title+" : "+digital_sub_title + \
                 "/" + digital_date + "/"+digital_control_num+"\n"
@@ -129,7 +128,7 @@ while i < int(total_num):
             data = digital_title + "/" + digital_date + "/"+digital_control_num+"\n"
         f_error.write(data)
     elif control_num_ == 2:
-        print('검색을 못했어요')
+        print('검색어에 오류가 났어요')
         if subtitle:
             data = digital_title+" : "+digital_sub_title + \
                 "/" + digital_date + "/"+digital_control_num+"\n"
